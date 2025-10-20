@@ -112,7 +112,8 @@ export default defineNuxtPlugin(async (nuxtApp) => {
          */
         getSetting(clave) {
             if (this.apiOnline){
-                return $fetch(`${this.apiRoot}websites/settings/${this.apiId}/${this.apiKey}/${clave}`);
+                var url = `${this.apiRoot}websites/settings/${this.apiId}/${this.apiKey}/${clave}`;
+                return $fetch(url);
             } else {
                 return "#N/A"
             }
@@ -477,6 +478,87 @@ export default defineNuxtPlugin(async (nuxtApp) => {
                 ]
             });
         }
+
+        /**
+         * Elimina las etiquetas innecesarias generadas por el editor.
+         * @param {string} html Texto a limpiar.
+         * @returns Contenido útil del HTML.
+         */
+        removeUnnecesaryTags(html) {
+            return html.replace('<!DOCTYPE html>', '')
+                .replace('<html>', '')
+                .replace('<head>', '')
+                .replace('</head>', '')
+                .replace('<body>', '')
+                .replace('</body>', '')
+                .replace('</html>', '')
+                .replace('<script', '[script]')
+                .replace('</script', '[/script]');
+        }
+
+        getFechaPublicacion(date) {
+            const valor = date;
+            if (!valor) return '';
+      
+            const fecha = new Date(valor);
+      
+            // Opciones de formateo (para DD-MM-YYYY)
+            const partes = fecha.toLocaleDateString('es-ES', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }).split('/');
+      
+            const fechaStr = `${partes[0]}-${partes[1]}-${partes[2]}`; // DD-MM-YYYY
+      
+            // Opciones de formateo (para HH:mm:ss)
+            const horaStr = fecha.toLocaleTimeString('es-ES', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+
+            return `Publicado el ${fechaStr} a las ${horaStr}`;
+        }
+
+        fechaDiaMes(fecha) {
+            const dateObj = new Date(fecha);
+            if (isNaN(dateObj)) {
+                return "Fecha inválida"; 
+            }
+            const opciones = {
+                day: 'numeric',
+                month: 'short'
+            };
+            const resultado = dateObj.toLocaleDateString('es-ES', opciones);
+            return resultado.replace(' de ', ' ').replace('.', '');
+        }
+
+        fechaAnio(fecha) {
+            const dateObj = new Date(fecha);
+            if (isNaN(dateObj)) {
+                return "Fecha inválida"; 
+            }
+            const anio = dateObj.getFullYear();
+            return String(anio);
+        }
+
+        getCanonico(title) {
+            if (!title) return '';
+            return String(title)
+                .toLowerCase()
+                .trim()
+                .replace(/\s+/g, '-')       // Reemplaza espacios por guiones
+                .replace(/[^\w\-]+/g, '')   // Remueve caracteres no alfanuméricos (excepto guiones)
+                .replace(/\-\-+/g, '-')     // Reemplaza múltiples guiones por uno solo
+                .replace(/^-+/, '')         // Remueve guiones al inicio
+                .replace(/-+$/, '');        // Remueve guiones al final
+        }
+
+        imageUrlBase() {
+            return 'https://contents.lncproducciones.com/gallery/get/';
+        }        
     }
 
     // Instanciamos la clase con las variables de entorno de Nuxt.
