@@ -87,15 +87,15 @@ export default defineNuxtPlugin(async (nuxtApp) => {
                 try {
                     try {
                         const response = await $fetch(`${this.apiRoot}sys/version`);
-                        this.apiVersion = response.Resultado;
+                        this.apiVersion = response;
                         this.apiOnline = true;
-                        this.clearCart();
+                        this.loadPedido();
                     } catch (error) {
                         console.warn("No se ha podido conectar con el servidor de la API. Modo offline.");
                         this.apiVersion = "4.0.0.0-local";
                     }
                     useHead({ meta: [ { name: 'generator', content: 'Portal Services for Web v.' + this.apiVersion } ] });
-                    console.log("Versión " + this.apiVersion);
+                    console.log("EShops Versión " + this.apiVersion);
                 } catch (error) {
                     console.error("Error al conectar con el servidor de la API:", error);
                 }
