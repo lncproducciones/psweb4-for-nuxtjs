@@ -278,6 +278,7 @@ export default defineNuxtPlugin(async (nuxtApp) => {
          */
         clearCart() {
             this.pedido.items = [];
+            console.info("Carrito vaciado.");
             this.recalcularPedido();
         }
 
