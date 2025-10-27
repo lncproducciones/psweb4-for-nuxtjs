@@ -6,9 +6,43 @@
  * Se ejecuta solo en el cliente.
  */
 
+/**
+ * @typedef {object} PedidoItem
+ * @property {number} productoId - ID del producto en el pedido.
+ * @property {number} unitario - Precio unitario del producto (float).
+ * @property {number} cantidad - Cantidad solicitada del producto (int).
+ * @property {number} monto - Monto total de la línea (unitario * cantidad) (float).
+ */
+
+/**
+ * @typedef {object} PedidoCliente
+ * @property {number} tipoDocumento - ID del tipo de documento de identificacion.
+ * @property {string} identidad - Numero de documento de identificacion.
+ * @property {string} nombres - Nombre del cliente.
+ * @property {string} apellidos - Apellidos del cliente.
+ * @property {string} correo - Direccion de correo electronico.
+ * @property {string} telefono - Numero de telefono de contacto.
+ * @property {string} direccion1 - Direccion de envio.
+ * @property {string} direccion2 - Direccion de envio (linea 2).
+ * @property {string} referencia - Punto de referencia.
+ * @property {number} ciudad - ID de la ciudad.
+ * @property {number} municipio - ID del municipio.
+ * @property {number} estado - ID del departamento.
+ * @property {number} pais - ID del pais.
+ */
+
 export default defineNuxtPlugin(async (nuxtApp) => {
     // Obtenemos las variables públicas de entorno del archivo nuxt.config.ts
     const config = useRuntimeConfig();
+
+    class PedidoItem {
+        constructor(productoId, unitario, cantidad, monto) {
+            this.productoId = productoId;
+            this.unitario = unitario;
+            this.cantidad = cantidad;
+            this.monto = monto;
+        }
+    }
 
     class EShop {
 
@@ -23,8 +57,18 @@ export default defineNuxtPlugin(async (nuxtApp) => {
             this.apiId = apiId;
             this.apiKey = apiKey;
             this.apiRoot = "https://eshops-api.psweb.me/";
+            /**
+             * Version de la API en el servidor.
+             */
             this.apiVersion = null;
+            /**
+             * Indica si el API esta en linea.
+             */
             this.apiOnline = false;
+            /**
+             * Información del pedido.
+             */
+            this.pedido = loadPedido();
         }
 
         /**
@@ -45,6 +89,7 @@ export default defineNuxtPlugin(async (nuxtApp) => {
                         const response = await $fetch(`${this.apiRoot}sys/version`);
                         this.apiVersion = response.Resultado;
                         this.apiOnline = true;
+                        this.clearCart();
                     } catch (error) {
                         console.warn("No se ha podido conectar con el servidor de la API. Modo offline.");
                         this.apiVersion = "4.0.0.0-local";
@@ -166,6 +211,10 @@ export default defineNuxtPlugin(async (nuxtApp) => {
             }
         }
 
+        /**
+         * Obtiene el listado de las marcas activas.
+         * @returns 
+         */
         getMarcasActivas() {
             if (this.apiOnline) {
                 var url = `${this.apiRoot}adm/mar-active/${this.pswebId}/${this.apiKey}`;
@@ -175,12 +224,249 @@ export default defineNuxtPlugin(async (nuxtApp) => {
             }
         }
 
+        /**
+         * Obtiene el listado de las categorias activas.
+         * @returns 
+         */
         getCategoriasActivas() {
             if (this.apiOnline) {
                 var url = `${this.apiRoot}adm/cat-active/${this.pswebId}/${this.apiKey}`;
                 return $fetch(url);
             } else {
                 return null;
+            }
+        }
+
+        /**
+         * Agrega un nuevo elemento al carrito.
+         * @param {PedidoItem} item 
+         */
+        addToCart(item) {
+            this.pedido.items.push(item);
+        }
+
+        /**
+         * Actualiza la cantidad de elementos de un producto, por su ID.
+         * @param {int} productoId ID del producto a actualizar.
+         * @param {int} cantidad Nueva cantidad de producto.
+         */
+        updateItem(productoId, cantidad)
+        {
+            if (cantidad > 0) {
+                const item = this.pedido.items.find(item => item.productoId === productoId);
+                if (item) {
+                    item.cantidad = cantidad;
+                    this.recalcularPedido();
+                }
+            } else {
+                this.removeFromCart(productoId);
+            }
+        }
+
+        /**
+         * Elimina un producto del carrito.
+         * @param {int} productoId ID del producto a eliminar
+         */
+        removeFromCart(productoId)
+        {
+            this.pedido.items = this.pedido.items.filter(item => item.productoId !== productoId);
+            this.recalcularPedido();
+        }
+
+        /**
+         * Elimina todos los elementos del carrito.
+         */
+        clearCart() {
+            this.pedido.items = [];
+            this.recalcularPedido();
+        }
+
+        /**
+         * Recalcula los totales del pedido.
+         */
+        recalcularPedido() {
+            this.pedido.resumen.items = this.pedido.items.length;
+            this.pedido.resumen.subtotal = 0;
+            this.pedido.items.forEach(item => {
+                this.pedido.resumen.subtotal += item.monto;
+            });
+            this.pedido.resumen.total = this.pedido.resumen.subtotal - this.pedido.resumen.descuento;
+        }
+
+        /**
+         * Establece los descuentos del pedido, y recalcula los totales
+         * @param {float} monto Monto a descontar.
+         * @param {string} motivo Motivo del descuento, debe estar definido en el backend.
+         */
+        setDescuento(monto, motivo) {
+            this.pedido.resumen.descuento = monto;
+            this.pedido.resumen.descuentoMotivo = motivo;
+            this.recalcularPedido();
+        }
+
+        /**
+         * Establece o actualiza los datos del cliente que realiza el pedido.
+         * @param {PedidoCliente} datos 
+         */
+        setDatosCliente(datos) {
+            this.pedido.cliente = datos;
+        }
+
+        /**
+         * Elimina los datos del cliente actual.
+         */
+        clearDatosCliente() {
+            this.pedido.cliente = {
+                tipoDocumento: 0,
+                identidad: '',
+                nombres: '',
+                apellidos: '',
+                correo: '',
+                telefono: '',
+                direccion1: '',
+                direccion2: '',
+                referencia: '',
+                ciudad: 0,
+                municipio: 0,
+                estado: 0,
+                pais: 0
+            };
+        }
+
+        /**
+         * Determina si se han cargado los datos del cliente comprador.
+         * @returns bool
+         */
+        hasDatosCliente() {
+            return (this.pedido.cliente.tipoDocumento > 0) 
+                && (this.pedido.cliente.identidad !== ''
+                && this.pedido.cliente.nombres !== ''
+                && this.pedido.cliente.apellidos !== ''
+                && this.pedido.cliente.correo !== ''
+                && this.pedido.cliente.telefono !== ''
+                && this.pedido.cliente.direccion1 !== ''
+                && this.pedido.cliente.ciudad > 0
+                && this.pedido.cliente.municipio > 0
+                && this.pedido.cliente.estado > 0
+                && this.pedido.cliente.pais > 0
+            );
+        }
+
+        /**
+         * Determina si el carrito tiene elementos.
+         * @returns bool
+         */
+        hasItems() {
+            return this.pedido.items.length > 0;
+        }
+
+        /**
+         * Determina si se puede enviar el pedido al servidor.
+         * @returns bool
+         */
+        canCreatePedido() {
+            return this.hasItems() && this.hasDatosCliente();
+        }
+
+        loadPedido() {
+            if (sessionStorage.getItem('pedido')) {
+                return JSON.parse(sessionStorage.getItem('pedido'));
+            } else {
+                var pedido = {
+                    /**
+                     * Datos del cliente.
+                     */
+                    cliente: {
+                        /**
+                         * ID del tipo de documento de identificacion.
+                         */
+                        tipoDocumento: 0,
+                        /**
+                         * Numero de documento de identificacion.
+                         */
+                        identidad: '',
+                        /**
+                         * Nombre del cliente.
+                         */
+                        nombres: '',
+                        /**
+                         * Apellidos del cliente.
+                         */
+                        apellidos: '',
+                        /**
+                         * Direccion de correo electronico.
+                         */
+                        correo: '',
+                        /**
+                         * Numero de telefono de contacto.
+                         */
+                        telefono: '',
+                        /**
+                         * Direccion de envio.
+                         */
+                        direccion1: '',
+                        /**
+                         * Direccion de envio (linea 2).
+                         */
+                        direccion2: '',
+                        /**
+                         * Punto de referencia.
+                         */
+                        referencia: '',
+                        /**
+                         * ID de la ciudad.
+                         */
+                        ciudad: 0,
+                        /**
+                         * ID del municipio.
+                         */
+                        municipio: 0,
+                        /**
+                         * ID del departamento.
+                         */
+                        estado: 0,
+                        /**
+                         * ID del pais.
+                         */
+                        pais: 0
+                    },
+                    /**
+                     * Elementos del carrito de compras.
+                     * @type {PedidoItem[]}
+                     */
+                    items: [],
+                    /**
+                     * Resumen de la operacion.
+                     */
+                    resumen: {
+                        /**
+                         * Observaciones del pedido.
+                         */
+                        observaciones: '',
+                        /**
+                         * Cantidad de elementos en el carrito de compras.
+                         */
+                        items: 0,
+                        /**
+                         * Subtotal a pagar.
+                         */
+                        subtotal: 0,
+                        /**
+                         * Monto a descontar.
+                         */
+                        descuento: 0,
+                        /**
+                         * Concepto del descuento.
+                         */
+                        descuentoMotivo: '',
+                        /**
+                         * Total a pagar.
+                         */
+                        total: 0
+                    }
+                };
+                sessionStorage.setItem('pedido', JSON.stringify(pedido));
+                return pedido;
             }
         }
     }
