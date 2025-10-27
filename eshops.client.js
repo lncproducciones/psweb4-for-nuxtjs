@@ -261,6 +261,7 @@ export default defineNuxtPlugin(async (nuxtApp) => {
                 }
             } else {
                 this.removeFromCart(productoId);
+                this.recalcularPedido();
             }
         }
 
