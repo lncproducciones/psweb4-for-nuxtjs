@@ -68,7 +68,7 @@ export default defineNuxtPlugin(async (nuxtApp) => {
             /**
              * Información del pedido.
              */
-            this.pedido = loadPedido();
+            this.pedido = this.loadPedido();
         }
 
         /**
@@ -243,6 +243,7 @@ export default defineNuxtPlugin(async (nuxtApp) => {
          */
         addToCart(item) {
             this.pedido.items.push(item);
+            this.recalcularPedido();
         }
 
         /**
