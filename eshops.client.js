@@ -8,6 +8,8 @@
 
 /**
  * @typedef {object} PedidoItem
+ * @property {string} imageUrl - URL de la imagen del producto.
+ * @property {string} titulo - Nombre del producto.
  * @property {number} productoId - ID del producto en el pedido.
  * @property {number} unitario - Precio unitario del producto (float).
  * @property {number} cantidad - Cantidad solicitada del producto (int).
@@ -36,8 +38,10 @@ export default defineNuxtPlugin(async (nuxtApp) => {
     const config = useRuntimeConfig();
 
     class PedidoItem {
-        constructor(productoId, unitario, cantidad, monto) {
+        constructor(productoId, titulo, imageUrl, unitario, cantidad, monto) {
             this.productoId = productoId;
+            this.titulo = titulo;
+            this.imageUrl = imageUrl;
             this.unitario = unitario;
             this.cantidad = cantidad;
             this.monto = monto;
@@ -131,7 +135,7 @@ export default defineNuxtPlugin(async (nuxtApp) => {
          */
         getProductosActivosTopMost(totalItems) {
             if (this.apiOnline) {
-                var url = `${this.apiRoot}prods/top/${this.pswebId}/${totalItems}/${this.apiKey}`;
+                var url = `${this.apiRoot}prods/top/${this.apiId}/${totalItems}/${this.apiKey}`;
                 return $fetch(url);
             } else {
                 return null;
@@ -146,7 +150,7 @@ export default defineNuxtPlugin(async (nuxtApp) => {
         getProductosByAdvancedFilter(filter) {
             if (this.apiOnline) {
                 filter = encodeURIComponent(filter);
-                var url = `${this.apiRoot}prods/filter/${this.pswebId}/${filter}/${this.apiKey}`;
+                var url = `${this.apiRoot}prods/filter/${this.apiId}/${filter}/${this.apiKey}`;
                 return $fetch(url);
             } else {
                 return null;
@@ -159,7 +163,7 @@ export default defineNuxtPlugin(async (nuxtApp) => {
          */
         getProductosActivos() {
             if (this.apiOnline) {
-                var url = `${this.apiRoot}prods/list/${this.pswebId}/${this.apiKey}`;
+                var url = `${this.apiRoot}prods/list/${this.apiId}/${this.apiKey}`;
                 return $fetch(url);
             } else {
                 return null;
@@ -173,7 +177,7 @@ export default defineNuxtPlugin(async (nuxtApp) => {
          */
         getProductosActivosByMarca(marcaId) {
             if (this.apiOnline) {
-                var url = `${this.apiRoot}prods/bymark/${this.pswebId}/${marcaId}/${this.apiKey}`;
+                var url = `${this.apiRoot}prods/bymark/${this.apiId}/${marcaId}/${this.apiKey}`;
                 return $fetch(url);
             } else {
                 return null;
@@ -187,7 +191,7 @@ export default defineNuxtPlugin(async (nuxtApp) => {
          */
         getProductosActivosByCategoria(categoriaId) {
             if (this.apiOnline) {
-                var url = `${this.apiRoot}prods/bycat/${this.pswebId}/${categoriaId}/${this.apiKey}`;
+                var url = `${this.apiRoot}prods/bycat/${this.apiId}/${categoriaId}/${this.apiKey}`;
                 return $fetch(url);
             } else {
                 return null;
@@ -201,7 +205,7 @@ export default defineNuxtPlugin(async (nuxtApp) => {
          */
         addPedido(p) {
             if (this.apiOnline) {
-                var url = `${this.apiRoot}pedidos/add/${this.pswebId}/${this.apiKey}`;
+                var url = `${this.apiRoot}pedidos/add/${this.apiId}/${this.apiKey}`;
                 return $fetch(url, {
                     method: "POST",
                     body: p
@@ -217,7 +221,7 @@ export default defineNuxtPlugin(async (nuxtApp) => {
          */
         getMarcasActivas() {
             if (this.apiOnline) {
-                var url = `${this.apiRoot}adm/mar-active/${this.pswebId}/${this.apiKey}`;
+                var url = `${this.apiRoot}adm/mar-active/${this.apiId}/${this.apiKey}`;
                 return $fetch(url);
             } else {
                 return null;
@@ -230,7 +234,53 @@ export default defineNuxtPlugin(async (nuxtApp) => {
          */
         getCategoriasActivas() {
             if (this.apiOnline) {
-                var url = `${this.apiRoot}adm/cat-active/${this.pswebId}/${this.apiKey}`;
+                var url = `${this.apiRoot}adm/cat-active/${this.apiId}/${this.apiKey}`;
+                return $fetch(url);
+            } else {
+                return null;
+            }
+        }
+
+        /**
+         * Obtiene el detalle de un producto, consultado por su ID.
+         * @param {int} id ID único del producto.
+         */
+        getProducto(id) {
+            if (this.apiOnline) {
+                var url = `${this.apiRoot}adm/pro-get/${id}/${this.apiKey}`;
+                return $fetch(url);
+            } else {
+                return null;
+            }
+        }
+
+        /**
+         * Actualiza la cantidad de visualizaciones de un producto, basado en su ID.
+         * @param {int} id ID único del producto.
+         */
+        updateProductoVisto(id) {
+            var p = { 
+                Id: id,
+                AlcatrazKey: this.apiKey
+            };
+            if (this.apiOnline) {
+                var url = `${this.apiRoot}adm/pro-visto`;
+                return $fetch(url, {
+                    method: "POST",
+                    body: p
+                });
+            } else {
+                return null;
+            }
+        }
+
+        /**
+         * Obtiene la galeria de imagenes de un producto, basado en su ID.
+         * @param {int} id ID único del producto.
+         */
+        getProductoGaleria(id) {
+            if (this.apiOnline) {
+                var url = `${this.apiRoot}adm/pro-gal-active/${id}/${this.apiKey}`;
                 return $fetch(url);
             } else {
                 return null;
