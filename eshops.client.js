@@ -90,9 +90,11 @@ export default defineNuxtPlugin(async (nuxtApp) => {
             else {
                 try {
                     try {
+                        console.log("Intentando conectar con el servidor de la API.");
                         const response = await $fetch(`${this.apiRoot}sys/version`);
                         this.apiVersion = response;
                         this.apiOnline = true;
+                        console.log("Cargando o creando el pedido.");
                         this.loadPedido();
                     } catch (error) {
                         console.warn("No se ha podido conectar con el servidor de la API. Modo offline.");
@@ -162,10 +164,14 @@ export default defineNuxtPlugin(async (nuxtApp) => {
          * @returns 
          */
         getProductosActivos() {
+            console.log("Intentando obtener productos activos.");
             if (this.apiOnline) {
+                console.log("API online.");
                 var url = `${this.apiRoot}prods/list/${this.apiId}/${this.apiKey}`;
+                console.info(url);
                 return $fetch(url);
             } else {
+                console.log("API offline.");
                 return null;
             }
         }
@@ -294,6 +300,12 @@ export default defineNuxtPlugin(async (nuxtApp) => {
         addToCart(item) {
             this.pedido.items.push(item);
             this.recalcularPedido();
+        }
+
+        async alCart(id) {
+            var prod = await this.getProducto(id).resultado;
+            var item = new PedidoItem(prod.productoId, prod.titulo, prod.imageUrl, prod.unitario, 1, prod.unitario);
+            this.addToCart(item);
         }
 
         /**
